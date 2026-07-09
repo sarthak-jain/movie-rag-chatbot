@@ -1,0 +1,7 @@
+streamlit>=1.40
+faiss-cpu>=1.9
+sentence-transformers>=3.0
+pandas>=2.0
+pyarrow>=15.0
+groq>=0.20
+huggingface_hub>=0.30

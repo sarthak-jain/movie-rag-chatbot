@@ -1,0 +1,8 @@
+# The file watcher crashes when it tries to introspect torch modules;
+# not needed in production anyway.
+[server]
+fileWatcherType = "none"
+
+[theme]
+base = "dark"
+primaryColor = "#e50914"
