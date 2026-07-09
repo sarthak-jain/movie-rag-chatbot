@@ -56,5 +56,7 @@ Add that URL to the README and your LinkedIn post.
 - **HF Spaces CPU basic**: free forever; the Space sleeps after ~48h of no
   traffic and cold-starts in ~1-2 min on the next visit. Fine for a portfolio.
 - **Groq free tier**: generous per-day request limits per model. If a burst of
-  LinkedIn visitors ever exhausts it, the app shows the API error and visitors
-  can paste their own free key in the sidebar — so the demo never fully breaks.
+  LinkedIn visitors ever exhausts it, the app shows a friendly "quota used up,
+  try again later" message and retrieval (the sources panel) keeps working.
+  Visitors are never asked for an API key — a public site asking users to paste
+  keys is a trust anti-pattern.

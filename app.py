@@ -104,20 +104,12 @@ with st.sidebar:
     year_range = st.slider("Release year filter", 1900, 2017, (1900, 2017))
     show_sources = st.toggle("Show retrieved movies", value=True)
 
-    st.divider()
     api_key = os.environ.get("GROQ_API_KEY")
     if not api_key:
         try:
             api_key = st.secrets.get("GROQ_API_KEY", None)
         except Exception:  # no secrets.toml at all
             api_key = None
-    user_key = st.text_input(
-        "Groq API key" + (" (optional — using host key)" if api_key else ""),
-        type="password",
-        help="Free key at console.groq.com",
-    )
-    if user_key:
-        api_key = user_key
 
     st.divider()
     st.markdown(
@@ -152,7 +144,10 @@ if not question and "pending" in st.session_state:
 
 if question:
     if not api_key:
-        st.error("No Groq API key found. Paste a free key in the sidebar (console.groq.com).")
+        st.error(
+            "Generation is not configured. If you are hosting this app, set a "
+            "GROQ_API_KEY secret (free key at console.groq.com)."
+        )
         st.stop()
 
     st.session_state.messages.append({"role": "user", "content": question})
@@ -164,14 +159,20 @@ if question:
             hits = retrieve(question, top_k, year_range)
         context = format_context(hits)
 
+        answer = None
         try:
             answer = st.write_stream(
                 stream_answer(Groq(api_key=api_key), MODELS[model_label],
                               temperature, context, st.session_state.messages)
             )
         except Exception as e:
-            st.error(f"Groq API error: {e}")
-            st.stop()
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                st.warning(
+                    "The free demo quota is used up for now — please try again "
+                    "in a little while. (The retrieved movies below still work!)"
+                )
+            else:
+                st.error(f"Generation failed: {e}")
 
         if show_sources and not hits.empty:
             with st.expander(f"📚 {len(hits)} retrieved movies"):
@@ -182,4 +183,5 @@ if question:
                         f"> {row.summary}"
                     )
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    if answer:
+        st.session_state.messages.append({"role": "assistant", "content": answer})
