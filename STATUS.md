@@ -6,6 +6,22 @@ Last updated: 2026-07-19
 
 - Full RAG app built: FAISS + `gte-small` retrieval over ~34k Wikipedia movie
   plots, prebuilt offline via `build_index.py`.
+- Added a **System Design Panel** (expandable, in the main page) that streams
+  live backend events — retrieval, context build, Claude call, streaming,
+  response/error — over real Server-Sent Events as questions are asked.
+  Inspired by the workflow panel in `RealTimeSoccerDashboard`, adapted to fit
+  Streamlit's single-process model:
+  - `workflow_events.py` — trace/step pub-sub (pure Python, no Streamlit dep).
+  - `sse_server.py` — stdlib `http.server`-based SSE server on `localhost:8502`,
+    started once per process from `app.py`.
+  - `system_design_panel.py` — the `EventSource`-based HTML/JS client,
+    rendered via `st.components.v1.html`.
+  - **Local dev only, by design** — HF Spaces exposes a single port, so this
+    can't reach a real backend once deployed; the panel will show
+    "Reconnecting…" there. Confirmed working end-to-end locally (screenshot
+    showed the full trace: `RETRIEVAL` → `CONTEXT_BUILD` → `LLM_CALL` →
+    `ERROR`/`RESPONSE`, plus a startup `INDEX_LOAD` system event).
+  - No new dependencies — everything is Python stdlib.
 - Generation switched from Groq (Llama) to the **Anthropic API** — `app.py`
   now calls Claude directly via the `anthropic` SDK.
   - Model picker: **Claude Sonnet 5** (balanced, default), **Claude Haiku 4.5**

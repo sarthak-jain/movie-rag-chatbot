@@ -11,6 +11,9 @@ this file is about how to develop it.
 | `build_index.py` | Offline one-time script: downloads the dataset, embeds 32,924 movies, writes `data/` |
 | `data/index.faiss` | FAISS `IndexFlatIP` over normalized gte-small vectors (cosine sim), committed via **git LFS** |
 | `data/movies.parquet` | Metadata + plots, row-aligned with the FAISS index (row i ↔ vector i) |
+| `workflow_events.py` | Trace/step pub-sub for the System Design Panel — the RAG pipeline calls this to emit events |
+| `sse_server.py` | Stdlib SSE server (localhost:8502) that broadcasts `workflow_events` to the browser — **local dev only** |
+| `system_design_panel.py` | The panel's HTML/JS: an `EventSource` client rendered via `st.components.v1.html` |
 | `DEPLOY.md` | Deployment: GitHub + Hugging Face Space, Anthropic API key |
 | `.gitattributes` | LFS tracking for `data/*` — keep it if you regenerate artifacts |
 
@@ -57,6 +60,15 @@ lives as a Hugging Face Space secret.
   `MODELS` dict at the top of `app.py`.
 - Sonnet 5 and Opus 4.8 reject a non-default `temperature` (400 error) —
   only Haiku 4.5 in the `MODELS` lineup accepts it (`TEMPERATURE_CAPABLE_MODELS`).
+- The System Design Panel's SSE server only works locally. Hugging Face
+  Spaces exposes a single port, so the panel's `EventSource` (pointed at
+  `localhost:8502`) can't reach anything once deployed — it'll just show
+  "Reconnecting…" forever there. That's expected, not a bug; the panel is a
+  local-dev / demo-recording feature, not a production observability tool.
+- `sse_server.start_server_once()` only actually starts once a real browser
+  session runs `app.py` (Streamlit executes the script over a WebSocket after
+  the page loads, not on a plain HTTP GET) — a bare `curl` to the Streamlit
+  port won't trigger it.
 
 ## Testing
 
