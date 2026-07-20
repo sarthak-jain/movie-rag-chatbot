@@ -34,16 +34,17 @@ FAISS similarity search (cosine, prebuilt index)
 prompt with retrieved context
      │
      ▼
-Llama 3.x via Groq API  →  streamed, grounded answer + cited sources
+Claude (Anthropic API)  →  streamed, grounded answer + cited sources
 ```
 
 - **Dataset:** [Wikipedia Movie Plots](https://huggingface.co/datasets/vishnupriyavr/wiki-movie-plots-with-summaries)
   (plot text © Wikipedia contributors, CC BY-SA)
 - **Embeddings:** [`thenlper/gte-small`](https://huggingface.co/thenlper/gte-small) — small enough to run on the free CPU tier
 - **Vector store:** FAISS `IndexFlatIP` over normalized vectors (exact cosine search)
-- **LLM:** Groq free tier (Llama 3.1 8B / Llama 3.3 70B / GPT-OSS 20B — switchable in the UI)
-- **Cost:** $0. The index is prebuilt offline (`build_index.py`), so the app never
-  embeds the corpus; the free Groq tier handles generation.
+- **LLM:** Claude via the Anthropic API (Sonnet 5 / Haiku 4.5 / Opus 4.8 — switchable in the UI)
+- **Cost:** The index is prebuilt offline (`build_index.py`), so the app never embeds
+  the corpus at runtime — only each user question. Generation is billed per-token by
+  Anthropic; there is no free tier, so this requires a funded API key.
 
 ## Settings you can play with
 
@@ -58,7 +59,7 @@ Llama 3.x via Groq API  →  streamed, grounded answer + cited sources
 ```bash
 pip install -r requirements.txt
 python build_index.py          # one-time: downloads dataset, builds data/ artifacts (~15 min)
-export GROQ_API_KEY=...        # free key from console.groq.com
+export ANTHROPIC_API_KEY=...   # from console.anthropic.com
 streamlit run app.py
 ```
 

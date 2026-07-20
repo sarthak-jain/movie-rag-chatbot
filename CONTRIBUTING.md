@@ -7,11 +7,11 @@ this file is about how to develop it.
 
 | File | Purpose |
 |---|---|
-| `app.py` | The whole Streamlit app: loads prebuilt artifacts, retrieves, calls Groq, renders chat + sidebar settings |
+| `app.py` | The whole Streamlit app: loads prebuilt artifacts, retrieves, calls Claude, renders chat + sidebar settings |
 | `build_index.py` | Offline one-time script: downloads the dataset, embeds 32,924 movies, writes `data/` |
 | `data/index.faiss` | FAISS `IndexFlatIP` over normalized gte-small vectors (cosine sim), committed via **git LFS** |
 | `data/movies.parquet` | Metadata + plots, row-aligned with the FAISS index (row i ↔ vector i) |
-| `DEPLOY.md` | Free-tier deployment: GitHub + Hugging Face Space, Groq key |
+| `DEPLOY.md` | Deployment: GitHub + Hugging Face Space, Anthropic API key |
 | `.gitattributes` | LFS tracking for `data/*` — keep it if you regenerate artifacts |
 
 ## Local setup
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 # artifacts ship in the repo via LFS, so you do NOT need to rebuild the index.
 # If you cloned without LFS content: git lfs install && git lfs pull
 
-export GROQ_API_KEY=...   # your own free key from console.groq.com
+export ANTHROPIC_API_KEY=...   # your own key from console.anthropic.com
 streamlit run app.py
 ```
 
@@ -33,10 +33,12 @@ lives as a Hugging Face Space secret.
 
 ## Design decisions to preserve
 
-1. **$0 cost is a hard constraint.** Free HF Space (CPU), free Groq tier,
-   index prebuilt offline. Don't add anything that needs a GPU server or paid API.
+1. **Hosting is free; generation is not.** Free HF Space (CPU), index prebuilt
+   offline — but the Claude API is billed per-token with no free tier, so a
+   funded Anthropic key with a spend limit is required. Don't add anything
+   that needs a GPU server.
 2. **No user-facing API key inputs.** Deliberately removed (trust anti-pattern
-   for a public site). Host key only; degrade gracefully on quota errors.
+   for a public site). Host key only; degrade gracefully on quota/rate-limit errors.
 3. **The app never embeds the corpus.** Only the query is embedded at runtime.
    If you change the embedding model or the dataset, rerun `build_index.py`
    (~15 min CPU) and commit the regenerated `data/` — app and index must use
@@ -51,8 +53,10 @@ lives as a Hugging Face Space secret.
 - The retrieval oversamples (`k * 20`) then post-filters by year — a plain
   `k` search would return too few results when the year filter is narrow.
 - Dataset covers films up to **2017** (that's the dataset's cutoff, not a bug).
-- Groq model IDs get deprecated over time; they're centralized in the
+- Claude model IDs get deprecated over time; they're centralized in the
   `MODELS` dict at the top of `app.py`.
+- Sonnet 5 and Opus 4.8 reject a non-default `temperature` (400 error) —
+  only Haiku 4.5 in the `MODELS` lineup accepts it (`TEMPERATURE_CAPABLE_MODELS`).
 
 ## Testing
 
