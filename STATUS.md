@@ -46,6 +46,25 @@ Last updated: 2026-07-19
   API") is pushed to `origin` (GitHub: `sarthak-jain/movie-rag-chatbot`, branch
   `main`).
 
+## Paused: making the System Design Panel work in production
+
+Discussed but not started. Two options to get the SSE panel working once
+deployed (currently local-dev only — see above):
+
+1. **Nginx reverse proxy inside the container** (recommended) — switch the HF
+   Space from the Streamlit SDK to a custom Docker SDK; nginx listens on the
+   one exposed port and routes `/events` to the internal SSE server,
+   everything else to Streamlit. More deployment complexity (Dockerfile +
+   nginx config + a process supervisor for both processes) but doesn't touch
+   Streamlit internals and stays on HF's free CPU tier. This mirrors how
+   `RealTimeSoccerDashboard` itself is deployed (it has an `nginx.conf`).
+2. **Mount the SSE route directly onto Streamlit's own Tornado server** via
+   its internal (undocumented) server API — no second port, less new
+   infrastructure, but depends on non-public Streamlit internals that could
+   break on a version bump.
+
+Resume by picking one of these and asking to implement it.
+
 ## What's left to deploy
 
 1. **Get an Anthropic API key** at console.anthropic.com, add billing, and set
