@@ -21,14 +21,7 @@ import workflow_events
 DATA_DIR = pathlib.Path(__file__).parent / "data"
 EMBED_MODEL = "thenlper/gte-small"
 
-MODELS = {
-    "Claude Sonnet 5 (balanced)": "claude-sonnet-5",
-    "Claude Haiku 4.5 (fastest, cheapest)": "claude-haiku-4-5",
-    "Claude Opus 4.8 (smartest)": "claude-opus-4-8",
-}
-# Sonnet 5 / Opus 4.8 reject non-default sampling params (400); only Haiku 4.5
-# in this lineup accepts a custom temperature.
-TEMPERATURE_CAPABLE_MODELS = {"claude-haiku-4-5"}
+MODEL = "claude-haiku-4-5"
 
 SYSTEM_PROMPT = """You are MoviePlot AI, a movie expert chatbot grounded in a database of \
 Wikipedia film plot summaries. Answer the user's question using ONLY the movie context \
@@ -82,12 +75,11 @@ def stream_answer(client: anthropic.Anthropic, model: str, temperature: float, c
     kwargs = dict(
         model=model,
         max_tokens=1024,
+        temperature=temperature,
         system=SYSTEM_PROMPT.format(context=context),
         # Last few turns so follow-up questions ("who directed it?") keep working.
         messages=history[-6:],
     )
-    if model in TEMPERATURE_CAPABLE_MODELS:
-        kwargs["temperature"] = temperature
     with client.messages.stream(**kwargs) as stream:
         yield from stream.text_stream
 
@@ -115,11 +107,8 @@ with st.expander("🔧 System Design Panel — live backend events (SSE)"):
 
 with st.sidebar:
     st.header("⚙️ Settings")
-    model_label = st.selectbox("LLM", list(MODELS.keys()))
     temperature = st.slider("Temperature", 0.0, 1.0, 0.3, 0.1,
-                            help="Higher = more creative, lower = more factual. "
-                                 "Only applies to Haiku 4.5 — Sonnet 5 and Opus 4.8 "
-                                 "always use their default sampling.")
+                            help="Higher = more creative, lower = more factual.")
     top_k = st.slider("Movies retrieved per question", 3, 10, 5,
                       help="How many plot summaries are passed to the LLM as context")
     year_range = st.slider("Release year filter", 1900, 2017, (1900, 2017))
@@ -189,10 +178,10 @@ if question:
 
         answer = None
         try:
-            trace.emit_llm_call(MODELS[model_label], len(context))
+            trace.emit_llm_call(MODEL, len(context))
             t0 = time.monotonic()
             answer = st.write_stream(
-                stream_answer(anthropic.Anthropic(api_key=api_key), MODELS[model_label],
+                stream_answer(anthropic.Anthropic(api_key=api_key), MODEL,
                               temperature, context, st.session_state.messages)
             )
             trace.emit_streaming(len(answer) if answer else 0, int((time.monotonic() - t0) * 1000))

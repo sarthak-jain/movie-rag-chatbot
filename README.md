@@ -41,14 +41,14 @@ Claude (Anthropic API)  →  streamed, grounded answer + cited sources
   (plot text © Wikipedia contributors, CC BY-SA)
 - **Embeddings:** [`thenlper/gte-small`](https://huggingface.co/thenlper/gte-small) — small enough to run on the free CPU tier
 - **Vector store:** FAISS `IndexFlatIP` over normalized vectors (exact cosine search)
-- **LLM:** Claude via the Anthropic API (Sonnet 5 / Haiku 4.5 / Opus 4.8 — switchable in the UI)
+- **LLM:** Claude Haiku 4.5 via the Anthropic API — fastest and cheapest in the Claude
+  lineup, keeping generation cost to a fraction of a cent per question
 - **Cost:** The index is prebuilt offline (`build_index.py`), so the app never embeds
   the corpus at runtime — only each user question. Generation is billed per-token by
   Anthropic; there is no free tier, so this requires a funded API key.
 
 ## Settings you can play with
 
-- **LLM model** — trade speed vs. quality
 - **Temperature** — factual vs. creative answers
 - **Top-k retrieval** — how many plots are passed as context
 - **Release-year filter** — restrict the search to an era

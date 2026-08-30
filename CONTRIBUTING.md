@@ -56,10 +56,10 @@ lives as a Hugging Face Space secret.
 - The retrieval oversamples (`k * 20`) then post-filters by year — a plain
   `k` search would return too few results when the year filter is narrow.
 - Dataset covers films up to **2017** (that's the dataset's cutoff, not a bug).
-- Claude model IDs get deprecated over time; they're centralized in the
-  `MODELS` dict at the top of `app.py`.
-- Sonnet 5 and Opus 4.8 reject a non-default `temperature` (400 error) —
-  only Haiku 4.5 in the `MODELS` lineup accepts it (`TEMPERATURE_CAPABLE_MODELS`).
+- Claude model IDs get deprecated over time; the model is centralized in the
+  `MODEL` constant at the top of `app.py`. Pinned to Haiku 4.5 only — cheapest
+  in the lineup, and the only one of the three that accepts a non-default
+  `temperature` (Sonnet 5 / Opus 4.8 reject it with a 400).
 - The System Design Panel's SSE server only works locally. Hugging Face
   Spaces exposes a single port, so the panel's `EventSource` (pointed at
   `localhost:8502`) can't reach anything once deployed — it'll just show
