@@ -154,7 +154,31 @@ it cannot catch a real signature or API mismatch with the actual library —
 that only surfaces on a real end-to-end run against the genuine dependency.
 Worth remembering before treating a mocked test pass as full verification.
 
-## 7. Local Windows dev environment friction (not app bugs, but worth noting)
+## 7. The redesigned panel was hard to discover
+
+**Problem:** after item 1's redesign, the trace box appeared inline in the
+chat with every answer — but with no "System Design Panel" label anywhere
+(its `st.status()` label was just the question text), it was easy to see the
+retrieval/context/LLM-call lines and not realize that *was* the feature. On
+top of that, being one box per turn meant it visually competed with the
+answer itself for attention in the main chat flow.
+
+**Solution, in two steps:**
+1. First pass: prefixed every status label with a fixed `"🔧 System Design
+   Panel"` string so the box is unambiguously named regardless of which
+   question or state it's showing.
+2. Second pass (the better fix): moved the box out of the chat flow entirely
+   into a **fixed sidebar slot**, grouped with the rest of Settings, and
+   added a "Show System Design Panel" toggle there (same pattern as the
+   existing "Show retrieved movies" toggle) plus a one-line caption in the
+   main area pointing users to it. `Trace` now takes a `container` param
+   (defaults to the top-level `st` module, but the app passes a
+   `st.container()` placeholder reserved in the sidebar) so the box always
+   renders in the same fixed spot instead of wherever `start_user_action()`
+   happens to be called from. A `NullTrace` no-op class handles the
+   toggled-off case without branching every `emit_*` call site.
+
+## 8. Local Windows dev environment friction (not app bugs, but worth noting)
 
 A few things that looked like problems but were purely local-environment
 quirks, in case they recur:

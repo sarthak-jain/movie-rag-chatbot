@@ -58,13 +58,16 @@ lives as a Hugging Face Space secret.
   `MODEL` constant at the top of `app.py`. Pinned to Haiku 4.5 only — cheapest
   in the lineup, and the only one of the three that accepts a non-default
   `temperature` (Sonnet 5 / Opus 4.8 reject it with a 400).
-- The System Design Panel is a live `st.status()` box rendered per question
-  (see `workflow_events.py`) — it works identically in local dev and on any
-  hosting target, since it rides Streamlit's own connection instead of a
-  second server. It's ephemeral per turn, not a cumulative cross-session log:
-  only the trace for the most recently answered question is visible; older
-  turns just show their answer text. That's an intentional simplification,
-  not a bug.
+- The System Design Panel is a live `st.status()` box rendered into a fixed
+  sidebar slot (`trace_slot` in `app.py`, passed to `workflow_events.Trace`'s
+  `container` param) — not wherever the code happens to run. It works
+  identically in local dev and on any hosting target, since it rides
+  Streamlit's own connection instead of a second server. It's ephemeral per
+  turn, not a cumulative cross-session log: only the trace for the most
+  recently answered question is visible; older turns just show their answer
+  text. That's an intentional simplification, not a bug. Gated by the
+  sidebar's "Show System Design Panel" toggle — off swaps in `NullTrace`
+  (same method surface, no-ops) rather than branching every call site.
 - `st.status().update(state=...)` resets `expanded` to `False` unless you
   pass `expanded=True` again in that same call — easy to lose track of when
   adding new terminal states to `Trace`.

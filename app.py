@@ -88,6 +88,8 @@ st.caption(
     "your question is matched against the full corpus (FAISS + gte-small embeddings) "
     "and Claude answers using only the retrieved plots."
 )
+st.caption("⚙️ Open the sidebar to watch the **System Design Panel** — a live trace of "
+           "retrieval, context build, and the Claude call — as you ask a question.")
 
 with st.sidebar:
     st.header("⚙️ Settings")
@@ -99,6 +101,13 @@ with st.sidebar:
                       help="How many plot summaries are passed to the LLM as context")
     year_range = st.slider("Release year filter", 1900, 2017, (1900, 2017))
     show_sources = st.toggle("Show retrieved movies", value=True)
+    show_trace = st.toggle("Show System Design Panel", value=True,
+                           help="Live backend trace — retrieval, context build, Claude "
+                                "call, streaming, response — rendered here as you ask "
+                                "questions.")
+
+    st.divider()
+    trace_slot = st.container()
 
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
@@ -151,7 +160,9 @@ if question:
         st.markdown(question)
 
     with st.chat_message("assistant"):
-        trace = workflow_events.start_user_action(question[:60])
+        trace = workflow_events.start_user_action(
+            question[:60], container=trace_slot, enabled=show_trace
+        )
 
         t0 = time.monotonic()
         hits = retrieve(question, top_k, year_range)

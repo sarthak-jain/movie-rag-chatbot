@@ -53,10 +53,10 @@ Claude (Anthropic API)  →  streamed, grounded answer + cited sources
 - **Top-k retrieval** — how many plots are passed as context
 - **Release-year filter** — restrict the search to an era
 - **Show retrieved movies** — inspect exactly what the LLM saw (with similarity scores)
-- **System Design Panel** — a live-updating trace box that appears with every
-  answer, showing each backend step (retrieval, context build, Claude call,
-  streaming, response/error) as it happens. Built entirely on Streamlit's own
-  `st.status()` — no second server, no extra infrastructure — so it works the
+- **Show System Design Panel** — toggle a live-updating trace box, pinned in
+  the sidebar, showing each backend step (retrieval, context build, Claude
+  call, streaming, response/error) as it happens. Built entirely on
+  Streamlit's own `st.status()` — no second server, no extra infrastructure — so it works the
   same locally and on the live demo.
 
 ## Run locally

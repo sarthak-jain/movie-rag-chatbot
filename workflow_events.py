@@ -24,10 +24,16 @@ PANEL_LABEL = "🔧 System Design Panel"
 
 
 class Trace:
-    """One user question, rendered as a live-updating st.status() box."""
+    """One user question, rendered as a live-updating st.status() box.
 
-    def __init__(self, label: str):
-        self._status = st.status(f"{PANEL_LABEL} — 🔍 {label}", expanded=True)
+    `container` is anything exposing `.status()` — the `st` module itself,
+    `st.sidebar`, or a placeholder from `st.container()` — so the panel can be
+    pinned to a fixed spot (e.g. the sidebar) instead of wherever this class
+    happens to be instantiated in the script.
+    """
+
+    def __init__(self, label: str, container=st):
+        self._status = container.status(f"{PANEL_LABEL} — 🔍 {label}", expanded=True)
         self._step_no = itertools.count(1)
         self._start = time.monotonic()
 
@@ -77,5 +83,30 @@ class Trace:
         self._status.update(label=f"{PANEL_LABEL} — ❌ {name}", state="error", expanded=True)
 
 
-def start_user_action(label: str) -> Trace:
-    return Trace(label)
+class NullTrace:
+    """No-op stand-in used when the System Design Panel toggle is off."""
+
+    def elapsed_ms(self) -> int:
+        return 0
+
+    def emit_retrieval(self, *args, **kwargs):
+        pass
+
+    def emit_context_build(self, *args, **kwargs):
+        pass
+
+    def emit_llm_call(self, *args, **kwargs):
+        pass
+
+    def emit_streaming(self, *args, **kwargs):
+        pass
+
+    def emit_response(self, *args, **kwargs):
+        pass
+
+    def emit_error(self, *args, **kwargs):
+        pass
+
+
+def start_user_action(label: str, container=st, enabled: bool = True):
+    return Trace(label, container=container) if enabled else NullTrace()
