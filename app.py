@@ -143,6 +143,28 @@ with st.sidebar:
         "[Dataset](https://huggingface.co/datasets/vishnupriyavr/wiki-movie-plots-with-summaries) · "
         "plots © Wikipedia (CC BY-SA)"
     )
+    with st.expander("ℹ️ Disclaimer"):
+        st.caption(
+            "**About this project.** MoviePlot AI is a personal portfolio project "
+            "created by Sarthak Jain to demonstrate software engineering skills, "
+            "including retrieval-augmented generation (RAG), vector search, and AI "
+            "application development. It was built independently of any employer "
+            "and outside of any employment relationship.\n\n"
+            "**This site is non-commercial.** It generates no revenue, displays no "
+            "advertising, accepts no payments or donations, and is not offered as a "
+            "product, service, or business. No commercial transactions occur on "
+            "this site.\n\n"
+            "**No affiliation.** This project is not affiliated with, endorsed by, "
+            "or sponsored by Wikipedia, the Wikimedia Foundation, Anthropic, or any "
+            "film studio or distributor. All trademarks and data belong to their "
+            "respective owners. Movie plot data (© Wikipedia contributors, CC "
+            "BY-SA) is displayed for demonstration purposes only.\n\n"
+            "**Limited availability.** This site is provided as-is for skill "
+            "demonstration. It may be modified, taken offline, or have features "
+            "disabled at any time without notice.\n\n"
+            "**Contact.** For inquiries about this project, please contact "
+            "sarthak1891@gmail.com."
+        )
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
