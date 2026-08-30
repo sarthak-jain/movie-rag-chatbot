@@ -20,11 +20,14 @@ ICONS = {
 }
 
 
+PANEL_LABEL = "🔧 System Design Panel"
+
+
 class Trace:
     """One user question, rendered as a live-updating st.status() box."""
 
     def __init__(self, label: str):
-        self._status = st.status(f"🔍 {label}", expanded=True)
+        self._status = st.status(f"{PANEL_LABEL} — 🔍 {label}", expanded=True)
         self._step_no = itertools.count(1)
         self._start = time.monotonic()
 
@@ -50,7 +53,7 @@ class Trace:
         )
 
     def emit_llm_call(self, model: str, context_chars: int):
-        self._status.update(label=f"🤖 Asking {model}...")
+        self._status.update(label=f"{PANEL_LABEL} — 🤖 Asking {model}...")
         self._emit(
             "LLM_CALL", f"Claude request ({model})",
             f"streaming call started, ~{context_chars // 4} context tokens", 0,
@@ -65,11 +68,13 @@ class Trace:
     def emit_response(self, status_text: str, duration_ms: int):
         self._emit("RESPONSE", "Turn complete", status_text, duration_ms)
         # expanded=True must be re-asserted here — update() resets it to False otherwise.
-        self._status.update(label=f"✅ Answered in {duration_ms}ms", state="complete", expanded=True)
+        self._status.update(
+            label=f"{PANEL_LABEL} — ✅ Answered in {duration_ms}ms", state="complete", expanded=True
+        )
 
     def emit_error(self, name: str, message: str, duration_ms: int):
         self._emit("ERROR", name, message, duration_ms)
-        self._status.update(label=f"❌ {name}", state="error", expanded=True)
+        self._status.update(label=f"{PANEL_LABEL} — ❌ {name}", state="error", expanded=True)
 
 
 def start_user_action(label: str) -> Trace:
