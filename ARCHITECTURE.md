@@ -21,7 +21,7 @@ flowchart TD
         CLAUDE -->|"token stream"| ANSWER["st.write_stream()\nchat bubble"]
         ANSWER --> USER
 
-        SEARCH -.->|"emit_retrieval()"| TRACE["workflow_events.Trace\nst.status() box, inline per turn"]
+        SEARCH -.->|"emit_retrieval()"| TRACE["workflow_events.Trace\nst.status() box, pinned in sidebar\n(toggle-gated, NullTrace when off)"]
         CTX -.->|"emit_context_build()"| TRACE
         CLAUDE -.->|"emit_llm_call() / emit_streaming()\nemit_response() / emit_error()"| TRACE
         TRACE -->|"live-updating,\nsame connection"| USER
@@ -41,7 +41,7 @@ flowchart TD
 |---|---|---|
 | `build_index.py` | Offline embedding + index build | Runs once (~15 min CPU); output committed via git LFS |
 | `app.py` | The entire runtime app | UI, retrieval, prompt assembly, generation, all in one Streamlit script |
-| `workflow_events.py` | System Design Panel | Thin wrapper over `st.status()` — no server, no queue |
+| `workflow_events.py` | System Design Panel | Thin wrapper over `st.status()`, rendered into a fixed sidebar slot — no server, no queue. `NullTrace` no-op when the sidebar toggle is off |
 | `data/index.faiss`, `data/movies.parquet` | Prebuilt retrieval corpus | Loaded once per process via `@st.cache_resource`, never rebuilt at runtime |
 | Anthropic API (Claude Haiku 4.5) | Generation | Streamed via `client.messages.stream(...)`; only external network dependency at runtime |
 
@@ -68,20 +68,20 @@ sequenceDiagram
     participant C as Claude Haiku 4.5
 
     U->>S: submits question
-    S->>S: st.status() box opens (running)
+    S->>S: sidebar st.status() box opens (running), if toggle is on
     S->>F: embed query, search top_k (oversampled, year-filtered)
     F-->>S: hits (movies + similarity scores)
-    S->>S: emit_retrieval() → status line
+    S->>S: emit_retrieval() → status line in sidebar
     S->>S: format_context() from hits
-    S->>S: emit_context_build() → status line
+    S->>S: emit_context_build() → status line in sidebar
     S->>C: stream request (system prompt + context + last 6 turns)
-    S->>S: emit_llm_call() → status label updates
+    S->>S: emit_llm_call() → sidebar status label updates
     loop token-by-token
         C-->>S: text delta
-        S-->>U: st.write_stream renders incrementally
+        S-->>U: st.write_stream renders incrementally in the chat bubble
     end
-    S->>S: emit_streaming(), emit_response() → status: complete, expanded
-    S-->>U: chat bubble + sources expander + trace box, all inline
+    S->>S: emit_streaming(), emit_response() → sidebar status: complete, expanded
+    S-->>U: chat bubble + sources expander in main area; trace box in sidebar
 ```
 
 ## Cost shape
