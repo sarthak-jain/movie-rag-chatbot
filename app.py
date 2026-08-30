@@ -81,6 +81,27 @@ def stream_answer(client: anthropic.Anthropic, model: str, temperature: float, c
 
 st.set_page_config(page_title="RAG-Based Chatbot for Movies", page_icon="🎬", layout="centered")
 
+st.markdown(
+    """
+    <style>
+    .footer-credit {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        z-index: 999;
+        text-align: center;
+        padding: 4px 0;
+        font-size: 12px;
+        color: #8892b0;
+        background: rgba(14, 17, 23, 0.85);
+    }
+    </style>
+    <div class="footer-credit">Built with ❤️ by Sarthak Jain</div>
+    """,
+    unsafe_allow_html=True,
+)
+
 st.title("🎬 RAG-Based Chatbot for Movies")
 st.caption(
     "A Retrieval-Augmented Generation chatbot grounded in ~34,000 Wikipedia film "
