@@ -143,7 +143,7 @@ with st.sidebar:
         "[Dataset](https://huggingface.co/datasets/vishnupriyavr/wiki-movie-plots-with-summaries) · "
         "plots © Wikipedia (CC BY-SA)"
     )
-    with st.expander("ℹ️ Disclaimer"):
+    with st.expander("ℹ️ Disclaimer", expanded=True):
         st.caption(
             "**About this project.** MoviePlot AI is a personal portfolio project "
             "created by Sarthak Jain to demonstrate software engineering skills, "
