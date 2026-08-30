@@ -127,7 +127,34 @@ per question): roughly $0.005/question versus ~$0.017 for Sonnet 5 and
 `TEMPERATURE_CAPABLE_MODELS` branching entirely in favor of a single `MODEL`
 constant, since there was no longer a second model to branch around.
 
-## 6. Local Windows dev environment friction (not app bugs, but worth noting)
+## 6. `anthropic>=0.117` resolved to a different SDK version on Streamlit Cloud
+
+**Problem:** first real end-to-end test on the deployed app (asking a real
+question with a real API key) failed with
+`Messages.stream() got an unexpected keyword argument 'temperature'` — a
+Python-level `TypeError`, not an API error, meaning the installed SDK's
+`.stream()` method signature didn't include `temperature` at all. This had
+never been caught locally because prior verification either had no API key
+(stopped before reaching the call) or used a mocked `anthropic.Anthropic`
+client (see item 2's `AppTest` verification) that accepted arbitrary kwargs
+and therefore couldn't catch a real signature mismatch.
+
+**Root cause:** `requirements.txt` pinned `anthropic>=0.117` — open-ended.
+Locally installed `anthropic==0.117.0` (confirmed via
+`inspect.signature(client.messages.stream)`) does accept `temperature`, so
+whatever pip resolved on Streamlit Cloud's build was evidently a different
+version.
+
+**Solution:** pinned the exact tested version — `anthropic==0.117.0` — so the
+deployed environment can no longer drift from what's been locally verified.
+
+**Lesson for future changes:** mocking a third-party SDK in tests (as the
+`AppTest` verification did) proves the *calling code* is exception-safe, but
+it cannot catch a real signature or API mismatch with the actual library —
+that only surfaces on a real end-to-end run against the genuine dependency.
+Worth remembering before treating a mocked test pass as full verification.
+
+## 7. Local Windows dev environment friction (not app bugs, but worth noting)
 
 A few things that looked like problems but were purely local-environment
 quirks, in case they recur:
