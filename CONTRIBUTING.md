@@ -11,10 +11,8 @@ this file is about how to develop it.
 | `build_index.py` | Offline one-time script: downloads the dataset, embeds 32,924 movies, writes `data/` |
 | `data/index.faiss` | FAISS `IndexFlatIP` over normalized gte-small vectors (cosine sim), committed via **git LFS** |
 | `data/movies.parquet` | Metadata + plots, row-aligned with the FAISS index (row i ↔ vector i) |
-| `workflow_events.py` | Trace/step pub-sub for the System Design Panel — the RAG pipeline calls this to emit events |
-| `sse_server.py` | Stdlib SSE server (localhost:8502) that broadcasts `workflow_events` to the browser — **local dev only** |
-| `system_design_panel.py` | The panel's HTML/JS: an `EventSource` client rendered via `st.components.v1.html` |
-| `DEPLOY.md` | Deployment: GitHub + Hugging Face Space, Anthropic API key |
+| `workflow_events.py` | System Design Panel: wraps `st.status()` for a live per-question trace — no separate server |
+| `DEPLOY.md` | Deployment: GitHub + hosting target, Anthropic API key |
 | `.gitattributes` | LFS tracking for `data/*` — keep it if you regenerate artifacts |
 
 ## Local setup
@@ -60,15 +58,16 @@ lives as a Hugging Face Space secret.
   `MODEL` constant at the top of `app.py`. Pinned to Haiku 4.5 only — cheapest
   in the lineup, and the only one of the three that accepts a non-default
   `temperature` (Sonnet 5 / Opus 4.8 reject it with a 400).
-- The System Design Panel's SSE server only works locally. Hugging Face
-  Spaces exposes a single port, so the panel's `EventSource` (pointed at
-  `localhost:8502`) can't reach anything once deployed — it'll just show
-  "Reconnecting…" forever there. That's expected, not a bug; the panel is a
-  local-dev / demo-recording feature, not a production observability tool.
-- `sse_server.start_server_once()` only actually starts once a real browser
-  session runs `app.py` (Streamlit executes the script over a WebSocket after
-  the page loads, not on a plain HTTP GET) — a bare `curl` to the Streamlit
-  port won't trigger it.
+- The System Design Panel is a live `st.status()` box rendered per question
+  (see `workflow_events.py`) — it works identically in local dev and on any
+  hosting target, since it rides Streamlit's own connection instead of a
+  second server. It's ephemeral per turn, not a cumulative cross-session log:
+  only the trace for the most recently answered question is visible; older
+  turns just show their answer text. That's an intentional simplification,
+  not a bug.
+- `st.status().update(state=...)` resets `expanded` to `False` unless you
+  pass `expanded=True` again in that same call — easy to lose track of when
+  adding new terminal states to `Trace`.
 
 ## Testing
 
@@ -87,8 +86,11 @@ Retrieval sanity check: "how does Casablanca end" should rank **Casablanca
 
 ## Deployment flow
 
-Two remotes, one repo: `origin` (GitHub, code home) and `space` (Hugging Face,
-serves the site). After any change: push to both. Full steps in `DEPLOY.md`.
+Primary target is Streamlit Community Cloud — it deploys straight from
+`origin` (GitHub) and auto-redeploys on every push, so there's only one
+remote to push to. A Hugging Face Space is optional (resume value only, not
+required for the app to run); if you add one, push to both remotes after any
+change. Full steps in `DEPLOY.md`.
 
 ## Idea backlog (unclaimed)
 

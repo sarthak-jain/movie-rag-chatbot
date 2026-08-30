@@ -1,6 +1,47 @@
 # Project status
 
-Last updated: 2026-07-19
+Last updated: 2026-08-30
+
+## 2026-08-30 update
+
+- **Model pinned to Haiku 4.5 only.** Removed the Sonnet 5 / Opus 4.8 picker —
+  Haiku 4.5 is cheapest in the Claude lineup (~$0.005/question vs. ~$0.017 for
+  Sonnet 5 and ~$0.028 for Opus 4.8 at this app's typical context size), and
+  it's the only one of the three that accepts a non-default `temperature`.
+  `MODELS` dict + `TEMPERATURE_CAPABLE_MODELS` replaced with a single `MODEL`
+  constant in `app.py`.
+- **System Design Panel resolved — no longer local-dev only.** The old
+  two-port SSE architecture (`sse_server.py` + `system_design_panel.py`) is
+  deleted. `workflow_events.py` now wraps `st.status()` directly — Streamlit
+  already streams UI updates to the browser over its own connection during a
+  script run (that's how `st.write_stream` already worked), so the second
+  HTTP server and pub/sub were never actually necessary. The panel now
+  appears live, inline, per question, on **any** host — local or deployed —
+  for zero extra infrastructure. Trade-off: it's per-turn now, not a
+  cumulative cross-session log like the old always-mounted iframe was —
+  intentional simplification, not a regression to fix later. See
+  `CONTRIBUTING.md` gotchas for the two `st.status()` details that mattered
+  (`expanded` resets on `.update()`; no `with` block means a manual catch-all
+  `except Exception` is needed to avoid a stuck spinner on an unanticipated
+  error).
+- **Hosting target changed.** Hugging Face's Space-creation wizard no longer
+  offers a plain "Streamlit" SDK (only Gradio/Docker/Static), and creating a
+  Docker or Gradio Space now requires a paid plan for personal accounts.
+  Since the System Design Panel no longer needs HF Spaces' specific
+  single-process model to "sort of work" and cost matters more than the HF
+  resume mention, **Streamlit Community Cloud** is now the primary documented
+  deploy target — genuinely free, deploys straight from the same GitHub repo,
+  no Dockerfile needed. HF Spaces is now optional (see `DEPLOY.md`), either
+  paying for PRO + Docker, or trying `sdk: streamlit` directly in the README
+  YAML to see if HF's backend still honors it despite the wizard no longer
+  offering it — unconfirmed either way.
+- **Anthropic spend isolation.** Recommended flow updated to use a dedicated
+  Anthropic **Workspace** (not just a new key) for this project's spend
+  limit, so it can't affect API usage on other unrelated projects sharing the
+  same Anthropic account.
+- Not yet done: an actual Streamlit Community Cloud deploy attempt (to
+  confirm git-LFS pulls `data/index.faiss`/`data/movies.parquet` cleanly
+  there — flagged as a real unknown, not assumed to "just work").
 
 ## Done so far
 
@@ -46,50 +87,37 @@ Last updated: 2026-07-19
   API") is pushed to `origin` (GitHub: `sarthak-jain/movie-rag-chatbot`, branch
   `main`).
 
-## Paused: making the System Design Panel work in production
+## Resolved: making the System Design Panel work in production
 
-Discussed but not started. Two options to get the SSE panel working once
-deployed (currently local-dev only — see above):
-
-1. **Nginx reverse proxy inside the container** (recommended) — switch the HF
-   Space from the Streamlit SDK to a custom Docker SDK; nginx listens on the
-   one exposed port and routes `/events` to the internal SSE server,
-   everything else to Streamlit. More deployment complexity (Dockerfile +
-   nginx config + a process supervisor for both processes) but doesn't touch
-   Streamlit internals and stays on HF's free CPU tier. This mirrors how
-   `RealTimeSoccerDashboard` itself is deployed (it has an `nginx.conf`).
-2. **Mount the SSE route directly onto Streamlit's own Tornado server** via
-   its internal (undocumented) server API — no second port, less new
-   infrastructure, but depends on non-public Streamlit internals that could
-   break on a version bump.
-
-Resume by picking one of these and asking to implement it.
+Was paused (two options considered: nginx reverse proxy in a Docker
+container, or hooking into Streamlit's internal Tornado server — both real
+infra for a demo feature). Resolved instead by removing the second port
+entirely — see the 2026-08-30 entry above. Neither option above was needed.
 
 ## What's left to deploy
 
-1. **Get an Anthropic API key** at console.anthropic.com, add billing, and set
-   a spend limit (Claude has no free tier, unlike the old Groq setup).
+1. **Get an Anthropic API key** in a dedicated Workspace at
+   console.anthropic.com, add billing, and set a spend limit scoped to that
+   workspace (Claude has no free tier).
 2. **Smoke-test locally** with that key — `export ANTHROPIC_API_KEY=...` then
    `streamlit run app.py` — to confirm a real Claude answer streams correctly
    before deploying.
-3. **Create the Hugging Face Space**: SDK Streamlit, hardware CPU basic
-   (free), visibility public. Add secret `ANTHROPIC_API_KEY` under
-   Settings → Variables and secrets.
-4. **Add the `space` git remote** and push:
-   ```
-   git remote add space https://huggingface.co/spaces/<your-hf-username>/movieplot-ai
-   git push space main
-   ```
-5. **Verify the live Space** once it builds (~a few minutes — installing
-   torch is the slow part): ask it a real question, confirm streaming works
-   and the sources panel populates.
-6. Add the live Space URL to `README.md` and `LINKEDIN_POST.md` (both have
-   `<YOUR SPACE URL>` / "add your Space URL here" placeholders).
+3. **Deploy on Streamlit Community Cloud** (primary target — see `DEPLOY.md`):
+   sign in with GitHub at share.streamlit.io, point it at this repo, add
+   `ANTHROPIC_API_KEY` under Advanced settings → Secrets, deploy.
+4. **Verify the live app**: ask it a real question, confirm streaming works,
+   the System Design Panel renders inline, and the sources panel populates.
+   Also confirm the git-LFS `data/` files pulled correctly during the build.
+5. Add the live app URL to `README.md` and `LINKEDIN_POST.md` (both have
+   placeholders).
+6. Optional: add a Hugging Face Space too, per `DEPLOY.md`'s optional section
+   (requires either paying for PRO + Docker, or trying the unconfirmed
+   `sdk: streamlit`-via-YAML approach).
 
 ## Key facts for whoever resumes this
 
 - Full step-by-step deploy instructions: `DEPLOY.md`.
 - Repo map / design decisions / gotchas: `CONTRIBUTING.md`.
 - Env var is `ANTHROPIC_API_KEY` (local: shell export or
-  `.streamlit/secrets.toml`, gitignored; production: HF Space secret).
-- Model IDs are centralized in the `MODELS` dict at the top of `app.py`.
+  `.streamlit/secrets.toml`, gitignored; production: the host's secret store).
+- The model is centralized in the `MODEL` constant at the top of `app.py`.

@@ -53,11 +53,11 @@ Claude (Anthropic API)  →  streamed, grounded answer + cited sources
 - **Top-k retrieval** — how many plots are passed as context
 - **Release-year filter** — restrict the search to an era
 - **Show retrieved movies** — inspect exactly what the LLM saw (with similarity scores)
-- **System Design Panel** — an expandable panel that streams every backend step
-  (retrieval, context build, Claude call, streaming, response/error) live via
-  Server-Sent Events as you ask questions. **Local dev only** — it connects to
-  a second local server, which a single-port host like Hugging Face Spaces
-  can't expose, so it just shows "Reconnecting…" on the live demo.
+- **System Design Panel** — a live-updating trace box that appears with every
+  answer, showing each backend step (retrieval, context build, Claude call,
+  streaming, response/error) as it happens. Built entirely on Streamlit's own
+  `st.status()` — no second server, no extra infrastructure — so it works the
+  same locally and on the live demo.
 
 ## Run locally
 

@@ -14,8 +14,6 @@ import pandas as pd
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 
-import sse_server
-import system_design_panel
 import workflow_events
 
 DATA_DIR = pathlib.Path(__file__).parent / "data"
@@ -41,12 +39,9 @@ CONTEXT:
 
 @st.cache_resource(show_spinner="Loading index and embedding model...")
 def load_resources():
-    trace = workflow_events.start_system_event("Startup")
-    t0 = time.monotonic()
     index = faiss.read_index(str(DATA_DIR / "index.faiss"))
     movies = pd.read_parquet(DATA_DIR / "movies.parquet")
     embedder = SentenceTransformer(EMBED_MODEL)
-    trace.emit_index_loaded(index.ntotal, index.d, EMBED_MODEL, int((time.monotonic() - t0) * 1000))
     return index, movies, embedder
 
 
@@ -86,8 +81,6 @@ def stream_answer(client: anthropic.Anthropic, model: str, temperature: float, c
 
 st.set_page_config(page_title="RAG-Based Chatbot for Movies", page_icon="🎬", layout="centered")
 
-sse_port = sse_server.start_server_once()
-
 st.title("🎬 RAG-Based Chatbot for Movies")
 st.caption(
     "A Retrieval-Augmented Generation chatbot grounded in ~34,000 Wikipedia film "
@@ -96,17 +89,10 @@ st.caption(
     "and Claude answers using only the retrieved plots."
 )
 
-with st.expander("🔧 System Design Panel — live backend events (SSE)"):
-    st.caption(
-        "Streams retrieval, context-building, and Claude-call events straight off the "
-        "request pipeline via Server-Sent Events. **Local dev only** — connects to a "
-        "second local server on `localhost:8502`; on a single-port host like Hugging "
-        "Face Spaces this will show *Reconnecting…* since that port isn't reachable."
-    )
-    st.components.v1.html(system_design_panel.render_html(sse_port), height=480, scrolling=True)
-
 with st.sidebar:
     st.header("⚙️ Settings")
+    index, _, _ = load_resources()
+    st.caption(f"Index: {index.ntotal:,} vectors ({EMBED_MODEL})")
     temperature = st.slider("Temperature", 0.0, 1.0, 0.3, 0.1,
                             help="Higher = more creative, lower = more factual.")
     top_k = st.slider("Movies retrieved per question", 3, 10, 5,
@@ -164,13 +150,12 @@ if question:
     with st.chat_message("user"):
         st.markdown(question)
 
-    trace = workflow_events.start_user_action(question[:60])
-
     with st.chat_message("assistant"):
-        with st.spinner("Searching 34k movie plots..."):
-            t0 = time.monotonic()
-            hits = retrieve(question, top_k, year_range)
-            trace.emit_retrieval(top_k, year_range, len(hits), int((time.monotonic() - t0) * 1000))
+        trace = workflow_events.start_user_action(question[:60])
+
+        t0 = time.monotonic()
+        hits = retrieve(question, top_k, year_range)
+        trace.emit_retrieval(top_k, year_range, len(hits), int((time.monotonic() - t0) * 1000))
 
         t0 = time.monotonic()
         context = format_context(hits)
@@ -198,6 +183,9 @@ if question:
         except anthropic.APIConnectionError:
             trace.emit_error("APIConnectionError", "network error", trace.elapsed_ms())
             st.error("Couldn't reach the Claude API — check your connection and try again.")
+        except Exception as e:
+            trace.emit_error("UnexpectedError", str(e), trace.elapsed_ms())
+            st.error(f"Unexpected error: {e}")
 
         if show_sources and not hits.empty:
             with st.expander(f"📚 {len(hits)} retrieved movies"):
