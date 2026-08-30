@@ -79,7 +79,7 @@ def stream_answer(client: anthropic.Anthropic, model: str, temperature: float, c
         yield from stream.text_stream
 
 
-st.set_page_config(page_title="RAG-Based Chatbot for Movies", page_icon="🎬", layout="centered")
+st.set_page_config(page_title="RAG-Based Chatbot for Movies", page_icon="🎬", layout="wide")
 
 st.markdown(
     """
