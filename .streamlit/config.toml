@@ -1,7 +1,12 @@
-# The file watcher crashes when it tries to introspect torch modules;
-# not needed in production anyway.
+# The default watchdog-based watcher crashes introspecting torch's custom
+# module __path__ (a known Streamlit+PyTorch interaction bug). "poll" avoids
+# that same crash without disabling the watcher outright — Streamlit
+# Community Cloud's fast push-to-update flow relies on the watcher to notice
+# changed *imported* modules (not just app.py, which always re-execs fresh
+# regardless) and force a real reload; "none" left redeployed imports like
+# workflow_events.py silently stale in the already-running process.
 [server]
-fileWatcherType = "none"
+fileWatcherType = "poll"
 
 [theme]
 base = "dark"

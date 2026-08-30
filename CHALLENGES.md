@@ -178,7 +178,49 @@ answer itself for attention in the main chat flow.
    happens to be called from. A `NullTrace` no-op class handles the
    toggled-off case without branching every `emit_*` call site.
 
-## 8. Local Windows dev environment friction (not app bugs, but worth noting)
+## 8. Disabling the file watcher broke Streamlit Cloud's incremental redeploys
+
+**Problem:** after pushing the sidebar redesign (item 7), the live app crashed
+with `TypeError: start_user_action() got an unexpected keyword argument
+'container'` — but that argument had already landed in `workflow_events.py`
+on GitHub, confirmed by directly checking `git show origin/main:workflow_events.py`.
+The deployed `app.py` was clearly running the *new* code (the traceback's
+line numbers and call site matched exactly), while `workflow_events.py`
+inside the running process was still serving the *old* function signature.
+
+**Root cause:** `.streamlit/config.toml` had `fileWatcherType = "none"` —
+set earlier specifically to dodge a known Streamlit+PyTorch bug (the
+watchdog-based watcher crashes trying to introspect the custom `__path__` on
+torch's dynamically generated modules). What wasn't accounted for: Streamlit
+Community Cloud's fast "push → instant update" flow (no multi-minute
+rebuild when dependencies haven't changed) relies on that same watcher to
+detect which *imported* Python files changed and force them to be re-read.
+The main script (`app.py`) always re-executes fresh from disk on every run
+regardless of watcher state — that's just how Streamlit's script runner
+works — but a module pulled in via `import workflow_events` only gets
+re-imported when something forces a real process restart. With the watcher
+fully off, the git checkout on disk updated correctly, but the *already
+running* Python process had no mechanism telling it to drop its cached
+`workflow_events` module and re-import it, so it silently kept serving the
+pre-redesign version indefinitely across multiple redeploys.
+
+**Solution:** switched `fileWatcherType` from `"none"` to `"poll"` — a
+different watcher backend that doesn't do the same module-path introspection
+that crashes on torch, so it dodges the original problem without disabling
+watching entirely. Verified locally (fresh process boot, no crash) before
+pushing. Also had to manually **"Reboot app"** from Streamlit Cloud's app
+management menu once, since the already-stale running process wouldn't
+pick up the corrected config from a normal incremental update either — a
+config change needs a real restart to take effect, same underlying issue.
+
+**Lesson:** a setting justified purely by "fixes a local dev annoyance" can
+have side effects specific to how a hosting platform's fast-path deploy
+mechanism works, and that's easy to miss when the fix is verified only
+against local dev's own restart-every-time workflow — locally we always
+killed and relaunched the whole process, so we could never have reproduced
+this class of stale-import bug ourselves.
+
+## 9. Local Windows dev environment friction (not app bugs, but worth noting)
 
 A few things that looked like problems but were purely local-environment
 quirks, in case they recur:
